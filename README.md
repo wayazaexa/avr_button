@@ -15,6 +15,8 @@ https://wokwi.com/projects/456746316584114177
 
 Detta repo innehåller flera grenar för de olika situationer vi kommer titta på
 
+**OBS!** I denna branch blinkar vi inte LEDen för att visa extra noga att vi inte behöver millis för att göra en debounce. Här sätter vi den timern själva.
+
 
 ## make kommandon
 

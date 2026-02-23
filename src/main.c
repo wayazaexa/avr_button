@@ -4,9 +4,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "uart.h"
-#include "millis.h"
 
-#define BAUD 9600 // Needed by uart.h
+#define BAUD 9600
 
 // B (digital pin 8 to 13)
 // C (analog input pins)
@@ -17,44 +16,84 @@
 #define BIT_SET(a, b) (a |= (1U << b))
 #define BIT_CLEAR(a, b) (a &= ~(1U << b))
 #define BIT_FLIP(a, b) (a ^= (1U << b))
-#define BIT_CHECK(a, b) (a & (1U << b)) 
+#define BIT_CHECK(a, b) (a & (1U << b))
 #define BUTTON_IS_CLICKED(PINB, BUTTON_PIN) !BIT_CHECK(PINB, BUTTON_PIN)
 
-int main(void){
-    init_serial(); // Initiera uart
-    millis_init(); // Initiera millis
-    sei(); // Enable interrupts - behövs för millis
+unsigned char buttonTickResult_PB1 = 0;
 
-    BIT_SET(DDRB, LED_PIN); // Output mode
+typedef enum{
+    Click_status_Pressed,
+    Click_status_Released,
+    Click_status_Not_sure,
+} Click_status;
 
-    // Sätt knapp-pinnen till input pull-up - hålls hög när knappen inte är tryckt - blir låg när knappen trycks
-    BIT_CLEAR(DDRB, BUTTON_PIN); // Input mode
-    BIT_SET(PORTB, BUTTON_PIN); // Set to input pull-up
+Click_status clicked(unsigned char tick_vector) {
+    // Create a mask with the 5 lower bits set to 1 (0b00011111 = 31)
+    unsigned char mask = 31;
 
-    bool blinking = false;
-    millis_t millis_since_last_change = 0;
-    millis_t current_millis = 0;
-    millis_t delta = 0;
-    int counter = 0;
+    //00011111 5 senaste
+    if ((tick_vector & mask) == mask) {
+        return Click_status_Pressed; // 5 senaste värden är höga
+    }
+    else if ((tick_vector & mask) == 0) {
+        return Click_status_Released; // 5 senaste värden är låga
+    }
+    else {
+        return Click_status_Not_sure;
+    }
+}
 
+ISR(TIMER2_OVF_vect)
+{
+    TCNT2 = 5; // Timer Preloading
+    bool sample = BUTTON_IS_CLICKED(PINB, BUTTON_PIN);
+
+    // 1011111  -> 8 st millisekunder
+    buttonTickResult_PB1 = (buttonTickResult_PB1 << 1) | sample;
+}
+
+void timer2_init()
+{
+  TCCR2A = 0;   // Init Timer2A
+  TCCR2B = 0;   // Init Timer2B
+  TCCR2B |= 7;  // Prescaler = 1024
+  TCNT2 = 5;    // Timer Preloading
+  TIMSK2 |= 1;  // Enable Timer Overflow Interrupt
+}
+
+int main(void) {
+    init_serial();
+    timer2_init();
+    sei();
+
+    BIT_SET(DDRB, LED_PIN);
+
+    //Sätt till INPUT_PULLUP
+    BIT_CLEAR(DDRB, BUTTON_PIN);
+    BIT_SET(PORTB, BUTTON_PIN);
+
+    bool isOn = false;
+    bool canRelease = false;
+    int changes = 0;
+    
     while (1) {
-        current_millis = millis_get();
+        Click_status status = clicked(buttonTickResult_PB1);
 
-        if (BUTTON_IS_CLICKED(PINB, BUTTON_PIN)) {
-            _delay_ms(70); // Vi börjar med en delay - bättre, men inte helt bra (blir bättre ju längre vi väntar dock)
-            printf("%d\n", counter++);
-            blinking = !blinking;
-
-            if (!blinking) {
-                BIT_CLEAR(PORTB, LED_PIN);
-            }
+        if (status == Click_status_Pressed) {
+            canRelease = true;
         }
-        
-        delta = current_millis - millis_since_last_change;
 
-        if (blinking && (delta >= 250)) {
-            BIT_FLIP(PORTB, LED_PIN);
-            millis_since_last_change = current_millis;
+        if (canRelease && status == Click_status_Released) {
+            isOn = !isOn;
+            printf("%d\n", changes++);
+            canRelease = false;
+        }
+
+        if (isOn) {
+            BIT_SET(PORTB, LED_PIN);
+        }
+        else {
+            BIT_CLEAR(PORTB, LED_PIN);
         }
     }
     return 0;
