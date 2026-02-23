@@ -5,8 +5,6 @@
 #include <stdbool.h>
 #include "uart.h"
 
-#define BAUD 9600
-
 // B (digital pin 8 to 13)
 // C (analog input pins)
 // D (digital pins 0 to 7)
