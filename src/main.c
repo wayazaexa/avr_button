@@ -3,8 +3,6 @@
 #include <stdio.h>
 #include "uart.h"
 
-#define BAUD 9600 // Needed by uart.h
-
 // B (digital pin 8 to 13)
 // C (analog input pins)
 // D (digital pins 0 to 7)
