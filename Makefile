@@ -14,8 +14,9 @@ SRC_DIR  := src
 BIN_DIR  := bin
 OBJ_DIR  := obj
 
+# Här definierar vi BAUD, som behövs för uart.h
 CFLAGS  := -Wall -Wextra  -Wundef -pedantic \
-		-Os -std=gnu99 -DF_CPU=16000000UL -mmcu=${MCU}
+		-Os -std=gnu99 -DF_CPU=16000000UL -mmcu=${MCU} -DBAUD=9600
 LDFLAGS := -mmcu=$(MCU)
 
 BIN := program.hex
