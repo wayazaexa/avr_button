@@ -43,7 +43,7 @@ Click_status clicked(unsigned char tick_vector) {
 
 ISR(TIMER2_OVF_vect)
 {
-    TCNT2 = 5; // Timer Preloading
+    TCNT2 = 128; // Timer Preloading
     bool sample = BUTTON_IS_CLICKED(PINB, BUTTON_PIN);
 
     // 1011111  -> 8 st millisekunder
@@ -55,7 +55,7 @@ void timer2_init()
   TCCR2A = 0;   // Init Timer2A
   TCCR2B = 0;   // Init Timer2B
   TCCR2B |= 7;  // Prescaler = 1024
-  TCNT2 = 5;    // Timer Preloading
+  TCNT2 = 128;    // Timer Preloading - inte 100%, men bättre än 5, ännu högre = bättre
   TIMSK2 |= 1;  // Enable Timer Overflow Interrupt
 }
 
